@@ -1,3 +1,8 @@
+"""
+How to run:
+python parse_nasa_log_beam.py --project $GOOGLE_CLOUD_PROJECT --runner DataflowRunner --region australia-southeast1 --output_table $GOOGLE_CLOUD_PROJECT:nasa_logs.raw_access_logs --temp_location gs://$GOOGLE_CLOUD_PROJECT/tmp --input_subscription projects/$GOOGLE_CLOUD_PROJECT/subscriptions/nasa_log --staging_location gs://$GOOGLE_CLOUD_PROJECT/staging
+"""
+
 import argparse
 import logging
 import re
@@ -13,6 +18,7 @@ from apache_beam.io import ReadFromPubSub
 from apache_beam.io import WriteToBigQuery
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
+from apache_beam.options.pipeline_options import StandardOptions
 from apache_beam import coders
 
 
@@ -33,6 +39,9 @@ def str_to_int(str_num):
 
 class ParseAndFilterDoFn(beam.DoFn):
     def process(self, element):
+        """
+        Parse each records into relevant fields and return as a dict
+        """
         pattern = rb'(^\S+?)\s.+?\[(.+)\]\s+"(.+?)\s(\S+)\s*(.*)"\s(\d+)\s(.+)'
         match = re.match(pattern, element)
         if match is not None:
@@ -64,19 +73,22 @@ def run(argv=None):
                         dest='input_subscription',
                         help=('Input PubSub subscription of the form '
                               '"projects/<PROJECT>/subscriptions/<SUBSCRIPTION>."'))
+    parser.add_argument('--output_table',
+                        dest='output_table',
+                        help=('BigQuery Table to write results to, with the form '
+                              '<PROJECT>:<DATASET>.<TABLE>'))
     known_args, pipeline_args = parser.parse_known_args(argv)
-    pipeline_args.extend([
-        '--runner=DirectRunner',
-        '--job_name=parse_nasa_log',
-    ])
 
     # We use the save_main_session option because one or more DoFn's in this
     # workflow rely on global context (e.g., a module imported at module level).
     pipeline_options = PipelineOptions(pipeline_args)
     pipeline_options.view_as(SetupOptions).save_main_session = True
+    pipeline_options.view_as(StandardOptions).streaming = True
+
+    print('pipeline options:', pipeline_options)
 
     # Specification for table in BigQuery
-    table_spec = 'jf-project-20190218:nasa_logs.raw_access_logs'
+    table_spec = args.output_table
     table_schema = 'host:STRING, utc_timestamp:TIMESTAMP, action:STRING, uri:STRING, protocol:STRING, status:STRING, size:INTEGER'
     
     with beam.Pipeline(options=pipeline_options) as p:
@@ -101,7 +113,7 @@ def run(argv=None):
         output | WriteToBigQuery(
             table_spec,
             schema=table_schema,
-            write_disposition=beam.io.BigQueryDisposition.WRITE_TRUNCATE,
+            write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND,
             create_disposition=beam.io.BigQueryDisposition.CREATE_IF_NEEDED)
 
 
