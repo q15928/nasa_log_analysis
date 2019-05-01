@@ -8,9 +8,7 @@ Inspired by the article [Scalable Log Analytics with Apache Spark — A Comp
 
 ## Solution Architecture
 We will follow the typical data processing pipeline from data ingestion, processing and transforming, to storage and analysing.
-<p align="center">
-  <img src="https://github.com/q15928/nasa_log_analysis/blob/master/images/gcp_solution_architect.png" />
-</p>
+![](images/gcp_solution_architect.png)
 
 ### Data Ingestion
 For data ingestion, due to the nature of continuous log generation, as a results we will think of Cloud Pub/Sub. It is a fully-managed, auto scaling message delivery system. It makes the pipeline more robust by decoupling senders and receivers of event data. The message will be retained for 7 days. It guarantees to deliver each published message at least once for every subscription.
@@ -52,6 +50,9 @@ It is commonly to use regular expression to extract the patterns from the semi-s
 Below is the function to parse the record into relevant fields.
 ```python
 def process(self, element):
+    """
+    Parse each records into relevant fields and return as a dict
+    """
     pattern = rb'(^\S+?)\s.+?\[(.+)\]\s+"(.+?)\s(\S+)\s*(.*)"\s(\d+)\s(.+)'
     match = re.match(pattern, element)
     if match is not None:
@@ -79,23 +80,17 @@ def parse_timestamp(str_ts):
 ```
 
 Here is the graph when Dataflow is running.
-<p align="center">
-  <img src="https://github.com/q15928/nasa_log_analysis/blob/master/images/dataflow_job.png" />
-</p>
+![](images/dataflow_job.png)
 
 ### Store and Analyse data with BigQuery
 With Dataflow, the data are transferred into structured fields and ingested into BigQuery. It shows the data are streaming into in almost real-time once are processed.
-<p align="center">
-  <img src="https://github.com/q15928/nasa_log_analysis/blob/master/images/bigquery_table.png" />
-</p>
+![](images/bigquery_table.png)
 
 We can immediately query the data.
-<p align="center">
-  <img src="https://github.com/q15928/nasa_log_analysis/blob/master/images/bigquery_query.png" />
-</p>
+![](images/bigquery_query.png)
 
 
-Then we can use BigQuery to run complex queries to derive insights from the data. Moreover, we can even run [machine learning models on top of BigQuery](https://cloud.google.com/bigquery/docs/bigqueryml).
+Then we can use BigQuery to run complex queries to derive insights from the data and generate various BI reports. Moreover, we can even run [machine learning models on top of BigQuery](https://cloud.google.com/bigquery/docs/bigqueryml), for example, we can train a regression model to predict the traffic of the website for next week.
 
 ## Conclusion
 With Cloud Computing, we don't need to build from scratch for the underlying infrastructure, Linux servers and the data processing frameworks. This kind of time-consuming overheads are now replaced with a few mouse clicks. We can more focus on the application and data insights. This solution prototype can be built and implemented within a day. It can be easily expanded according to the complexity of business requirements. More importantly, it is production ready from day one.
