@@ -51,7 +51,7 @@ Below is the function to parse the record into relevant fields.
 ```python
 def process(self, element):
     """
-    Parse each records into relevant fields and return as a dict
+    Parse each record into relevant fields and return as a dict
     """
     pattern = rb'(^\S+?)\s.+?\[(.+)\]\s+"(.+?)\s(\S+)\s*(.*)"\s(\d+)\s(.+)'
     match = re.match(pattern, element)
@@ -80,13 +80,14 @@ def parse_timestamp(str_ts):
 ```
 
 Here is the graph when Dataflow is running.
+
 ![](images/dataflow_job.png)
 
 ### Store and Analyse data with BigQuery
-With Dataflow, the data are transferred into structured fields and ingested into BigQuery. It shows the data are streaming into in almost real-time once are processed.
+With Dataflow, the data are transferred into structured fields and ingested into BigQuery. It shows the data are streaming into BigQuery in almost real-time once they are processed.
 ![](images/bigquery_table.png)
 
-We can immediately query the data.
+We can immediately query the data in BigQuery.
 ![](images/bigquery_query.png)
 
 
